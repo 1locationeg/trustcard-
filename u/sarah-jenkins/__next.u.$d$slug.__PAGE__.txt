@@ -2,5 +2,5 @@
 2:I[21341,["/_next/static/chunks/05-c3ty_6dwfk.js","/_next/static/chunks/24c7-k41kh89w.js","/_next/static/chunks/2e0yy6pp08xtq.js"],"PublicProfileClient"]
 3:I[97367,["/_next/static/chunks/05-c3ty_6dwfk.js","/_next/static/chunks/24c7-k41kh89w.js"],"OutletBoundary"]
 4:"$Sreact.suspense"
-0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"slug":"sarah-jenkins"}],[["$","script","script-0",{"src":"/_next/static/chunks/2e0yy6pp08xtq.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"kvxUhmijVNQZBKMEtM3D0"}
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"slug":"sarah-jenkins"}],[["$","script","script-0",{"src":"/_next/static/chunks/2e0yy6pp08xtq.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"ps-_UZcIWRMFxEgFbfYbG"}
 5:null
