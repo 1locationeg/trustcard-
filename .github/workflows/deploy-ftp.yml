@@ -22,5 +22,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
           local-dir: ./
-          server-dir: /home/u959683176/domains/r8estate.com/public_html/trustcard
+          server-dir: /home/u959683176/domains/r8estate.com/public_html/trustcard/
           passive: true
