@@ -87,11 +87,21 @@ jobs:
                       except Exception as e:
                           log(f'ERROR: Failed to upload {remote_file}: {e}')
                           
-              # Get final file list of the subdomain directory
-              log('\nSubdomain Directory Listing:')
+              # Read remote .htaccess if exists
+              log('\nAttempting to read remote .htaccess:')
+              try:
+                  ftp.cwd(remote_dir)
+                  lines = []
+                  ftp.retrlines('RETR .htaccess', lines.append)
+                  log('Found .htaccess content:')
+                  log('\n'.join(lines))
+              except Exception as e:
+                  log(f'No .htaccess found or cannot read: {e}')
+                  
+              # Get final file list including hidden files
+              log('\nSubdomain Directory Listing (LIST -a):')
               lines = []
-              ftp.cwd(remote_dir)
-              ftp.retrlines('LIST', lines.append)
+              ftp.retrlines('LIST -a', lines.append)
               log('\n'.join(lines))
               
               ftp.quit()
@@ -110,6 +120,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes in FTP upload log"
           else
-            git commit -m "chore: update ftp_list.txt with upload logs"
+            git commit -m "chore: update ftp_list.txt with upload and htaccess logs"
             git push origin main
           fi
