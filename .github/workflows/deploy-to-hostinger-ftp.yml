@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   ftp-deploy:
@@ -23,9 +24,6 @@ jobs:
       - name: Build and export (static)
         run: npm run deploy-build
 
-      - name: Verify build output
-        run: ls -la out/ || echo "out directory not found"
-
       - name: Upload files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -33,6 +31,6 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
-          local-dir: ./out/
-          server-dir: /public_html/trustcard/
+          local-dir: out/
+          server-dir: /home/u959683176/domains/r8estate.com/public_html/trustcard/
           dangerous-clean-slate: false
