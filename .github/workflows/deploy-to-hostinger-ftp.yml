@@ -27,51 +27,89 @@ jobs:
         run: npm ci
 
       - name: Build and export (static)
-        run: |
-          npm run deploy-build
-          rm -f out/.htaccess
+        run: npm run deploy-build
 
-      - name: Upload files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: 21
-          local-dir: out/
-          server-dir: domains/r8estate.com/public_html/trustcard/
-          dangerous-clean-slate: false
-
-      - name: Get FTP File List and Commit
+      - name: Python FTP Upload and Debug
         run: |
           python -c "
+          import os
           from ftplib import FTP
+          
+          logs = []
+          def log(msg):
+              print(msg)
+              logs.append(msg)
+              
           try:
+              log('Connecting to FTP server...')
               ftp = FTP('${{ secrets.FTP_HOST }}')
               ftp.login('${{ secrets.FTP_USERNAME }}', '${{ secrets.FTP_PASSWORD }}')
+              log('Logged in successfully!')
               
-              # List files in the target subdomain folder
+              local_dir = 'out'
+              remote_dir = 'domains/r8estate.com/public_html/trustcard'
+              
+              # Walk local directory and upload files
+              for root, dirs, files in os.walk(local_dir):
+                  rel_path = os.path.relpath(root, local_dir)
+                  if rel_path == '.':
+                      target_dir = remote_dir
+                  else:
+                      target_dir = os.path.join(remote_dir, rel_path).replace('\\\\', '/')
+                  
+                  # Ensure directory exists on server
+                  parts = target_dir.split('/')
+                  current_parts = []
+                  for part in parts:
+                      if not part:
+                          continue
+                      current_parts.append(part)
+                      path_to_create = '/'.join(current_parts)
+                      try:
+                          ftp.mkd(path_to_create)
+                          log(f'Created remote directory: {path_to_create}')
+                      except Exception:
+                          pass # Already exists
+                  
+                  for file in files:
+                      # Skip .htaccess upload to prevent permission issues
+                      if file == '.htaccess':
+                          log('Skipping .htaccess file')
+                          continue
+                          
+                      local_file = os.path.join(root, file)
+                      remote_file = os.path.join(target_dir, file).replace('\\\\', '/')
+                      
+                      try:
+                          with open(local_file, 'rb') as f:
+                              ftp.storbinary(f'STOR {remote_file}', f)
+                          log(f'SUCCESS: Uploaded {file} -> {remote_file}')
+                      except Exception as e:
+                          log(f'ERROR: Failed to upload {remote_file}: {e}')
+                          
+              # Get final file list of the subdomain directory
+              log('\nSubdomain Directory Listing:')
               lines = []
-              ftp.cwd('domains/r8estate.com/public_html/trustcard')
+              ftp.cwd(remote_dir)
               ftp.retrlines('LIST', lines.append)
-              
-              # Write to a file in the workspace
-              with open('ftp_list.txt', 'w') as f:
-                  f.write('\n'.join(lines))
+              log('\n'.join(lines))
               
               ftp.quit()
-              print('Successfully wrote ftp_list.txt')
           except Exception as e:
-              print('FTP error:', e)
+              log(f'FTP fatal error: {e}')
+              
+          # Write all logs to ftp_list.txt
+          with open('ftp_list.txt', 'w') as f:
+              f.write('\n'.join(logs))
           "
           
-          # Commit the file back to main branch
+          # Commit the log file back to main branch
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add ftp_list.txt
           if git diff --staged --quiet; then
-            echo "No changes in FTP file list"
+            echo "No changes in FTP upload log"
           else
-            git commit -m "chore: update ftp_list.txt with subdomain files"
+            git commit -m "chore: update ftp_list.txt with upload logs"
             git push origin main
           fi
