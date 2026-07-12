@@ -24,7 +24,7 @@ jobs:
         run: npm run deploy-build
 
       - name: Verify build output
-        run: ls -la out/ || echo "out directory not found, creating it"
+        run: ls -la out/ || echo "out directory not found"
 
       - name: Upload files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
