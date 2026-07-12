@@ -6,13 +6,17 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   ftp-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,14 +30,21 @@ jobs:
       - name: Build static site
         run: npm run deploy-build
 
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: 21
-          local-dir: out/
-          server-dir: /
-          dangerous-clean-slate: false
-          state-name: .ftp-deploy-sync-state.json
+      - name: Deploy via Python FTP Script
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: python deploy.py
+
+      - name: Commit and push upload logs
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add ftp_list.txt
+          if git diff --staged --quiet; then
+            echo "No changes in FTP upload log"
+          else
+            git commit -m "chore: update ftp_list.txt with upload and htaccess logs"
+            git push origin main
+          fi
