@@ -32,5 +32,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
           local-dir: out/
-          server-dir: public_html/trustcard/
+          server-dir: domains/r8estate.com/public_html/trustcard/
           dangerous-clean-slate: false
