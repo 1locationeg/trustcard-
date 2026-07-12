@@ -1,6 +1,6 @@
 import os
 import sys
-from ftplib import FTP
+from ftplib import FTP, error_perm
 
 logs = []
 def log(msg):
@@ -44,6 +44,9 @@ def main():
                 try:
                     ftp.mkd(path_to_create)
                     log(f'Created remote directory: {path_to_create}')
+                except error_perm as e:
+                    if '550' not in str(e):  # 550 = file/directory already exists
+                        log(f'Warning creating {path_to_create}: {e}')
                 except Exception:
                     pass # Already exists
             
@@ -64,7 +67,10 @@ def main():
                     log(f'ERROR: Failed to upload {remote_file}: {e}')
         
         # Attempt to upload and rename htaccess.txt to .htaccess on subdomain root
-        ftp.cwd(remote_dir)
+        try:
+            ftp.cwd(remote_dir)
+        except Exception as e:
+            log(f'Warning: Could not change to {remote_dir}: {e}')
         
         htaccess_content = """DirectoryIndex index.html index.htm
 
@@ -86,6 +92,11 @@ RewriteEngine Off
             try:
                 ftp.delete('.htaccess')
                 log('Deleted old .htaccess successfully!')
+            except error_perm as e:
+                if '550' in str(e):
+                    log('No old .htaccess to delete (file not found)')
+                else:
+                    log(f'Error deleting .htaccess: {e}')
             except Exception as e:
                 log(f'No old .htaccess deleted: {e}')
                 
