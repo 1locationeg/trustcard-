@@ -1,0 +1,12 @@
+name: Debug FTP Directory
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-ftp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List FTP files
+        run: |
+          curl -v ftp://${{ secrets.FTP_HOST }} --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}"
