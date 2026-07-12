@@ -34,3 +34,17 @@ jobs:
           local-dir: out/
           server-dir: /
           dangerous-clean-slate: false
+
+      - name: Debug FTP File List
+        run: |
+          python -c "
+          from ftplib import FTP
+          try:
+              ftp = FTP('${{ secrets.FTP_HOST }}')
+              ftp.login('${{ secrets.FTP_USERNAME }}', '${{ secrets.FTP_PASSWORD }}')
+              print('FTP Root Contents:')
+              ftp.retrlines('LIST')
+              ftp.quit()
+          except Exception as e:
+              print('FTP error:', e)
+          "
