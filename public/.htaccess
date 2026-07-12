@@ -1,5 +1,9 @@
 DirectoryIndex index.html index.htm
 
+Options -Indexes
+
 <IfModule mod_rewrite.c>
-RewriteEngine Off
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_URI} !^/trustcard/
 </IfModule>
