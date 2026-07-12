@@ -42,8 +42,18 @@ jobs:
           try:
               ftp = FTP('${{ secrets.FTP_HOST }}')
               ftp.login('${{ secrets.FTP_USERNAME }}', '${{ secrets.FTP_PASSWORD }}')
-              print('FTP Root Contents:')
-              ftp.retrlines('LIST')
+              lines = []
+              ftp.retrlines('LIST', lines.append)
+              
+              # Write list to file
+              with open('ftp_files.txt', 'w') as f:
+                  f.write('\n'.join(lines))
+              
+              # Upload to server root
+              with open('ftp_files.txt', 'rb') as f:
+                  ftp.storbinary('STOR ftp_files.txt', f)
+              
+              print('Uploaded ftp_files.txt to FTP server root')
               ftp.quit()
           except Exception as e:
               print('FTP error:', e)
