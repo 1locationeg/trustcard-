@@ -1,11 +1,5 @@
-RewriteEngine On
+DirectoryIndex index.html index.htm
 
-# Redirect /public to root (to prevent redirect loops)
-RewriteCond %{THE_REQUEST} \s/public/ [NC]
-RewriteRule ^public/(.*)$ /$1 [R=301,L]
-
-# Resolve clean URLs (e.g. /onboarding/wizard to /onboarding/wizard.html)
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME}.html -f
-RewriteRule ^(.*)$ $1.html [L]
+<IfModule mod_rewrite.c>
+RewriteEngine Off
+</IfModule>
