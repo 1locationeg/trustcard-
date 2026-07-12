@@ -72,9 +72,9 @@ jobs:
                           pass # Already exists
                   
                   for file in files:
-                      # Skip .htaccess upload to prevent permission issues
+                      # Skip .htaccess upload from the regular out/ folder walk
                       if file == '.htaccess':
-                          log('Skipping .htaccess file')
+                          log('Skipping .htaccess file in walk')
                           continue
                           
                       local_file = os.path.join(root, file)
@@ -86,11 +86,45 @@ jobs:
                           log(f'SUCCESS: Uploaded {file} -> {remote_file}')
                       except Exception as e:
                           log(f'ERROR: Failed to upload {remote_file}: {e}')
-                          
-              # Read remote .htaccess if exists
+              
+              # Attempt to upload and rename htaccess.txt to .htaccess on subdomain root
+              ftp.cwd(remote_dir)
+              
+              htaccess_content = '''DirectoryIndex index.html index.htm
+
+<IfModule mod_rewrite.c>
+RewriteEngine Off
+</IfModule>
+'''
+              
+              with open('temp_htaccess.txt', 'w') as f:
+                  f.write(htaccess_content)
+                  
+              try:
+                  log('Uploading temp_htaccess.txt as htaccess.txt...')
+                  with open('temp_htaccess.txt', 'rb') as f:
+                      ftp.storbinary('STOR htaccess.txt', f)
+                  log('Uploaded htaccess.txt successfully!')
+                  
+                  # Try to delete existing .htaccess first
+                  try:
+                      ftp.delete('.htaccess')
+                      log('Deleted old .htaccess successfully!')
+                  except Exception as e:
+                      log(f'No old .htaccess deleted: {e}')
+                      
+                  # Rename htaccess.txt to .htaccess
+                  try:
+                      ftp.rename('htaccess.txt', '.htaccess')
+                      log('Successfully renamed htaccess.txt to .htaccess!')
+                  except Exception as e:
+                      log(f'ERROR: Failed to rename htaccess.txt to .htaccess: {e}')
+              except Exception as e:
+                  log(f'ERROR: Failed htaccess operations: {e}')
+                  
+              # Read remote .htaccess if exists to verify
               log('\nAttempting to read remote .htaccess:')
               try:
-                  ftp.cwd(remote_dir)
                   lines = []
                   ftp.retrlines('RETR .htaccess', lines.append)
                   log('Found .htaccess content:')
