@@ -108,6 +108,18 @@ RewriteEngine Off
         except Exception as e:
             log(f'No .htaccess found or cannot read: {e}')
             
+        # Read parent directory .htaccess to debug routing
+        log('\nAttempting to read parent directory (.public_html) .htaccess:')
+        try:
+            ftp.cwd('..')
+            parent_lines = []
+            ftp.retrlines('RETR .htaccess', parent_lines.append)
+            log('Found parent .htaccess content:')
+            log('\n'.join(parent_lines))
+            ftp.cwd('trustcard')
+        except Exception as e:
+            log(f'Cannot read parent .htaccess: {e}')
+            
         # Get final file list including hidden files
         log('\nSubdomain Directory Listing (LIST -a):')
         lines = []
