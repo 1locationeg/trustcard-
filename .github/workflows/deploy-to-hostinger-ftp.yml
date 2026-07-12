@@ -6,12 +6,17 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   ftp-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -35,7 +40,7 @@ jobs:
           server-dir: /
           dangerous-clean-slate: false
 
-      - name: Debug FTP File List
+      - name: Get FTP File List and Commit
         run: |
           python -c "
           from ftplib import FTP
@@ -45,16 +50,23 @@ jobs:
               lines = []
               ftp.retrlines('LIST', lines.append)
               
-              # Write list to file
-              with open('ftp_files.txt', 'w') as f:
+              # Write to a file in the workspace
+              with open('ftp_list.txt', 'w') as f:
                   f.write('\n'.join(lines))
               
-              # Upload to server root
-              with open('ftp_files.txt', 'rb') as f:
-                  ftp.storbinary('STOR ftp_files.txt', f)
-              
-              print('Uploaded ftp_files.txt to FTP server root')
               ftp.quit()
+              print('Successfully wrote ftp_list.txt')
           except Exception as e:
               print('FTP error:', e)
           "
+          
+          # Commit the file back to main branch
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add ftp_list.txt
+          if git diff --staged --quiet; then
+            echo "No changes in FTP file list"
+          else
+            git commit -m "chore: update ftp_list.txt with remote files"
+            git push origin main
+          fi
