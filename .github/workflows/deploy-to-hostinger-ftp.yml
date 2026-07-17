@@ -61,23 +61,18 @@ jobs:
           user = os.environ.get('FTP_USERNAME')
           pwd = os.environ.get('FTP_PASSWORD')
           
-          print('Connecting to FTP for htaccess upload...')
+          print('Connecting to FTP for htaccess configurations...')
           ftp = ftplib.FTP(host)
           ftp.login(user, pwd)
           
-          # Navigate to trustcard directory
+          # 1. Update domains/r8estate.com/public_html/trustcard/.htaccess
+          print('Navigating to trustcard directory...')
           ftp.cwd('domains/r8estate.com/public_html/trustcard')
           
           htaccess_content = '''DirectoryIndex index.html
           
-          Options -Indexes
-          
           <IfModule mod_rewrite.c>
-            RewriteEngine On
-            RewriteCond %{REQUEST_FILENAME} !-d
-            RewriteCond %{REQUEST_FILENAME} !-f
-            RewriteCond %{REQUEST_FILENAME}.html -f
-            RewriteRule ^(.*)$ $1.html [L]
+          RewriteEngine Off
           </IfModule>
           '''
           
@@ -86,19 +81,71 @@ jobs:
               
           with open('temp_htaccess.txt', 'rb') as f:
               ftp.storbinary('STOR htaccess.txt', f)
-          print('Uploaded htaccess.txt successfully!')
+          print('Uploaded trustcard htaccess.txt successfully!')
           
           try:
               ftp.delete('.htaccess')
-              print('Deleted old .htaccess successfully!')
+              print('Deleted old trustcard .htaccess successfully!')
           except Exception as e:
-              print('No old .htaccess deleted:', e)
+              print('No old trustcard .htaccess deleted:', e)
               
           try:
               ftp.rename('htaccess.txt', '.htaccess')
-              print('Successfully renamed htaccess.txt to .htaccess!')
+              print('Successfully renamed trustcard htaccess.txt to .htaccess!')
           except Exception as e:
-              print('Failed to rename htaccess.txt to .htaccess:', e)
+              print('Failed to rename trustcard htaccess.txt to .htaccess:', e)
+              
+          # 2. Update domains/r8estate.com/public_html/.htaccess (parent directory exception)
+          print('Navigating to parent directory...')
+          ftp.cwd('..')
+          
+          parent_lines = []
+          try:
+              ftp.retrlines('RETR .htaccess', parent_lines.append)
+              parent_content = '\n'.join(parent_lines)
+              print('Successfully retrieved parent .htaccess')
+              
+              exception_cond = 'RewriteCond %{REQUEST_URI} !^/trustcard(/|$)'
+              if exception_cond not in parent_content:
+                  print('Adding trustcard exception to parent .htaccess...')
+                  lines = parent_content.split('\n')
+                  new_lines = []
+                  added = False
+                  for line in lines:
+                      # Insert the exception before any RewriteRule leading to index.php
+                      if ('index.php' in line or 'RewriteRule ^ index.php' in line) and not added:
+                          new_lines.append(f'    {exception_cond}')
+                          added = True
+                      new_lines.append(line)
+                      
+                  # If we couldn't find index.php, just insert after RewriteEngine On
+                  if not added:
+                      new_lines = []
+                      for line in lines:
+                          new_lines.append(line)
+                          if 'RewriteEngine On' in line and not added:
+                              new_lines.append(f'    {exception_cond}')
+                              added = True
+                              
+                  parent_content_updated = '\n'.join(new_lines)
+                  
+                  with open('temp_parent_htaccess.txt', 'w') as f:
+                      f.write(parent_content_updated)
+                      
+                  with open('temp_parent_htaccess.txt', 'rb') as f:
+                      ftp.storbinary('STOR htaccess_parent.txt', f)
+                      
+                  try:
+                      ftp.delete('.htaccess')
+                  except Exception:
+                      pass
+                      
+                  ftp.rename('htaccess_parent.txt', '.htaccess')
+                  print('Successfully updated parent .htaccess with trustcard exception!')
+              else:
+                  print('trustcard exception already exists in parent .htaccess')
+          except Exception as e:
+              print('Could not modify parent .htaccess or it does not exist:', e)
               
           ftp.quit()
           "
