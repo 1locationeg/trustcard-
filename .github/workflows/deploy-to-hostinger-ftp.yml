@@ -30,21 +30,76 @@ jobs:
       - name: Build static site
         run: npm run deploy-build
 
-      - name: Deploy via Python FTP Script
+      - name: Prepare build files
+        run: |
+          # Remove .htaccess from out/ to prevent FTP upload block by Hostinger
+          rm -f out/.htaccess
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          local-dir: out/
+          server-dir: domains/r8estate.com/public_html/trustcard/
+          dangerous-clean-slate: false
+          state-name: .ftp-deploy-sync-state.json
+
+      - name: Upload and rename .htaccess
         env:
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: python deploy.py
-
-      - name: Commit and push upload logs
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add ftp_list.txt
-          if git diff --staged --quiet; then
-            echo "No changes in FTP upload log"
-          else
-            git commit -m "chore: update ftp_list.txt with upload and htaccess logs"
-            git push origin main
-          fi
+          python -c "
+          import ftplib
+          import os
+          
+          host = os.environ.get('FTP_HOST')
+          user = os.environ.get('FTP_USERNAME')
+          pwd = os.environ.get('FTP_PASSWORD')
+          
+          print('Connecting to FTP for htaccess upload...')
+          ftp = ftplib.FTP(host)
+          ftp.login(user, pwd)
+          
+          # Navigate to trustcard directory
+          ftp.cwd('domains/r8estate.com/public_html/trustcard')
+          
+          htaccess_content = '''DirectoryIndex index.html
+          
+          Options -Indexes
+          
+          <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME}.html -f
+            RewriteRule ^(.*)$ $1.html [L]
+          </IfModule>
+          '''
+          
+          with open('temp_htaccess.txt', 'w') as f:
+              f.write(htaccess_content)
+              
+          with open('temp_htaccess.txt', 'rb') as f:
+              ftp.storbinary('STOR htaccess.txt', f)
+          print('Uploaded htaccess.txt successfully!')
+          
+          try:
+              ftp.delete('.htaccess')
+              print('Deleted old .htaccess successfully!')
+          except Exception as e:
+              print('No old .htaccess deleted:', e)
+              
+          try:
+              ftp.rename('htaccess.txt', '.htaccess')
+              print('Successfully renamed htaccess.txt to .htaccess!')
+          except Exception as e:
+              print('Failed to rename htaccess.txt to .htaccess:', e)
+              
+          ftp.quit()
+          "
+

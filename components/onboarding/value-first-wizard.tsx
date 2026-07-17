@@ -71,7 +71,6 @@ export function ValueFirstWizard() {
   // Intelligence scoring log animation
   React.useEffect(() => {
     if (step === 11) {
-      setIsLoadingIntelligence(true)
       const logs = [
         "Analyzing identity verifications...",
         "Evaluating track record volume...",
@@ -79,8 +78,11 @@ export function ValueFirstWizard() {
         "Calculating authority and recognition weight...",
         "Generating Buyer Confidence Score..."
       ]
+      const timer = setTimeout(() => {
+        setIsLoadingIntelligence(true)
+        setIntelligenceLog(logs[0])
+      }, 0)
       let currentIdx = 0
-      setIntelligenceLog(logs[0])
 
       const interval = setInterval(() => {
         currentIdx++
@@ -92,7 +94,10 @@ export function ValueFirstWizard() {
         }
       }, 900)
 
-      return () => clearInterval(interval)
+      return () => {
+        clearTimeout(timer)
+        clearInterval(interval)
+      }
     }
   }, [step])
 
@@ -555,24 +560,21 @@ export function ValueFirstWizard() {
                     ? parseFloat(draft[item.field as keyof typeof draft] as string) 
                     : item.defaultVal
 
-                  // Set defaults on load if empty
-                  if (!draft[item.field as keyof typeof draft]) {
-                    updateDraft({ [item.field]: item.defaultVal.toString() })
-                  }
+
 
                   return (
                     <div key={item.label} className="p-3 bg-slate-900/50 border border-slate-800 rounded-xl flex items-center justify-between">
                       <span className="text-xs font-semibold text-slate-200">{item.label}</span>
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => adjustMetric(item.field as any, -1, item.isFloat)}
+                          onClick={() => adjustMetric(item.field as "dealsClosed" | "yearsOfExperience" | "trustedByCount", -1, item.isFloat)}
                           className="w-7 h-7 rounded-lg bg-[#0c1627] border border-slate-850 text-slate-400 hover:text-white flex items-center justify-center"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
                         <span className="text-xs font-bold text-amber-500 w-8 text-center">{val}</span>
                         <button
-                          onClick={() => adjustMetric(item.field as any, 1, item.isFloat)}
+                          onClick={() => adjustMetric(item.field as "dealsClosed" | "yearsOfExperience" | "trustedByCount", 1, item.isFloat)}
                           className="w-7 h-7 rounded-lg bg-[#0c1627] border border-slate-850 text-slate-400 hover:text-white flex items-center justify-center"
                         >
                           <Plus className="w-3.5 h-3.5" />
